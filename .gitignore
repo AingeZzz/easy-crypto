@@ -125,3 +125,4 @@ hs_err_pid*
 .classpath
 **/target
 **/.gitignore
+/src/test/
