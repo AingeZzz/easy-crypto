@@ -25,7 +25,7 @@ public class AESCrypter {
      * @param plaintext 需要加密的明文
      * @return 返回密文
      */
-    public static byte[] cbcEncrypt(byte[] keyBytes, byte[] iv, byte[] plaintext) {
+    public static byte[] cbcEncrypt(byte[] keyBytes, byte[] iv, byte[] plaintext) throws AESCryptoException {
         try {
             Cipher cipher = Cipher.getInstance(CBC_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
             cipher.init(Cipher.ENCRYPT_MODE, toAesKey(keyBytes), new IvParameterSpec(iv));
@@ -45,7 +45,7 @@ public class AESCrypter {
      * @param ciphertext 密文
      * @return 返回明文
      */
-    public static byte[] cbcDecrypt(byte[] keyBytes, byte[] iv, byte[] ciphertext) {
+    public static byte[] cbcDecrypt(byte[] keyBytes, byte[] iv, byte[] ciphertext) throws AESCryptoException {
         Cipher cipher = null;
         try {
             cipher = Cipher.getInstance(CBC_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
@@ -67,7 +67,7 @@ public class AESCrypter {
      * @param pText    明文
      * @return 密文（假设byte[]长度为len，[0,len - tagLen]，[len - tagLen,len],前者为真正的密文，后面为tag认证数据）
      */
-    public static byte[] gcmEncrypt(byte[] keyBytes, byte[] iv, int tagLen, byte[] pText) {
+    public static byte[] gcmEncrypt(byte[] keyBytes, byte[] iv, int tagLen, byte[] pText) throws AESCryptoException {
         return gcmEncryptWithAAD(keyBytes, iv, tagLen, pText, null);
     }
 
@@ -80,7 +80,7 @@ public class AESCrypter {
      * @param cText    密文 （假设byte[]长度为len，[0,len - tagLen]，[len - tagLen,len],前者为真正的密文，后面为tag认证数据）
      * @return 返回明文
      */
-    public static byte[] gcmDecrypt(byte[] keyBytes, byte[] iv, int tagLen, byte[] cText) {
+    public static byte[] gcmDecrypt(byte[] keyBytes, byte[] iv, int tagLen, byte[] cText) throws AESCryptoException {
         return gcmDecryptWithAAD(keyBytes, iv, tagLen, cText, null);
     }
 
@@ -95,7 +95,7 @@ public class AESCrypter {
      * @param aad      附加的认证数据
      * @return 密文（假设byte[]长度为len，[0,len - tagLen]，[len - tagLen,len],前者为真正的密文，后面为tag认证数据）
      */
-    public static byte[] gcmEncryptWithAAD(byte[] keyBytes, byte[] iv, int tagLen, byte[] pText, byte[] aad) {
+    public static byte[] gcmEncryptWithAAD(byte[] keyBytes, byte[] iv, int tagLen, byte[] pText, byte[] aad) throws AESCryptoException {
         try {
             Cipher cipher = Cipher.getInstance(GCM_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
             // 数组字节个数 * 8
@@ -123,7 +123,7 @@ public class AESCrypter {
      * @param aad      附加的认证数据
      * @return 返回明文
      */
-    public static byte[] gcmDecryptWithAAD(byte[] keyBytes, byte[] iv, int tagLen, byte[] cText, byte[] aad) {
+    public static byte[] gcmDecryptWithAAD(byte[] keyBytes, byte[] iv, int tagLen, byte[] cText, byte[] aad) throws AESCryptoException {
         try {
             Cipher cipher = Cipher.getInstance(GCM_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
             GCMParameterSpec spec = new GCMParameterSpec(tagLen * 8, iv);

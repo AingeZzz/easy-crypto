@@ -23,7 +23,7 @@ public class RSAKeyPairGenerator {
      * @param keySize 密钥对长度，一般为2048,1024
      * @return
      */
-    public static KeyPair generateRSAKeyPair(int keySize) {
+    public static KeyPair generateRSAKeyPair(int keySize) throws CryptoException {
         try {
             // create the keys
             KeyPairGenerator generator = KeyPairGenerator.getInstance(ALGORITHM, BouncyCastleProvider.PROVIDER_NAME);
@@ -44,7 +44,7 @@ public class RSAKeyPairGenerator {
      * @param pkcs8PrivateKey
      * @return
      */
-    public static PrivateKey converPKCS8(byte[] pkcs8PrivateKey) {
+    public static PrivateKey converPKCS8(byte[] pkcs8PrivateKey) throws CryptoException {
         PKCS8EncodedKeySpec pkcs8Spec = new PKCS8EncodedKeySpec(pkcs8PrivateKey);
         KeyFactory keyFact = null;
         try {
@@ -66,7 +66,7 @@ public class RSAKeyPairGenerator {
      * @param x509PublicKey
      * @return
      */
-    public static PublicKey converX509(byte[] x509PublicKey) {
+    public static PublicKey converX509(byte[] x509PublicKey) throws CryptoException {
         if (x509PublicKey == null || x509PublicKey.length == 0) {
             throw new IllegalArgumentException("x509PublicKey empty");
         }

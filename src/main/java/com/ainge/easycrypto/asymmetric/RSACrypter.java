@@ -22,7 +22,7 @@ public class RSACrypter {
      * @param privateKey 私钥
      * @return 明文
      */
-    public static byte[] decryptByRsaOaep(byte[] data, PrivateKey privateKey) {
+    public static byte[] decryptByRsaOaep(byte[] data, PrivateKey privateKey) throws RSACryptoException {
         try {
             // RSA/ECB/OAEPWithSHA-1AndMGF1Padding
             Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPPadding", "BC");
@@ -42,7 +42,7 @@ public class RSACrypter {
      * @param publicKey 公钥
      * @return 密文
      */
-    public static byte[] encryptByRsaOaep(byte[] data, PublicKey publicKey) {
+    public static byte[] encryptByRsaOaep(byte[] data, PublicKey publicKey) throws RSACryptoException {
         try {
             // RSA/ECB/OAEPWithSHA-1AndMGF1Padding
             Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPPadding", "BC");

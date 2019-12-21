@@ -3,7 +3,7 @@ package com.ainge.easycrypto.exception;
 /**
  * @author: Ainge
  */
-public class CryptoException extends RuntimeException{
+public class CryptoException extends Exception{
     public CryptoException() {
         super();
     }
