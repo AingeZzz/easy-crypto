@@ -85,15 +85,15 @@ public class RSASignature {
      *
      * @param rsaPrivate RSA私钥
      * @param pssSpec    pssSpec
-     * @param input
+     * @param original
      * @return 签名值
      * @throws GeneralSecurityException 签名过程失败抛出异常
      */
-    public static byte[] generateRSAPSSSignature(PrivateKey rsaPrivate, PSSParameterSpec pssSpec, byte[] input) throws GeneralSecurityException {
+    public static byte[] generateRSAPSSSignature(PrivateKey rsaPrivate, PSSParameterSpec pssSpec, byte[] original) throws GeneralSecurityException {
         Signature signature = Signature.getInstance("RSAPSS", "BC");
         signature.setParameter(pssSpec);
         signature.initSign(rsaPrivate);
-        signature.update(input);
+        signature.update(original);
         return signature.sign();
     }
 
