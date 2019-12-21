@@ -20,6 +20,13 @@ public class SecureRandomGenerator {
         SecureRandom secureRandom = new SecureRandom();
         byte[] bytes = new byte[length];
         secureRandom.nextBytes(bytes);
+        return randomBytes(length, null);
+    }
+
+    public static byte[] randomBytes(int length, SecureRandom secureRandom) {
+        secureRandom = (secureRandom == null) ? new SecureRandom() : secureRandom;
+        byte[] bytes = new byte[length];
+        secureRandom.nextBytes(bytes);
         return bytes;
     }
 
