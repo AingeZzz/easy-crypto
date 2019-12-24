@@ -1,8 +1,12 @@
 package com.ainge.easycrypto.example;
 
+import com.ainge.easycrypto.digest.HMacCrypter;
 import com.ainge.easycrypto.digest.MessageDigestCrypter;
+import com.ainge.easycrypto.util.ByteUtil;
 import org.junit.Assert;
 import org.junit.Test;
+
+import javax.crypto.SecretKey;
 
 
 /**
@@ -31,6 +35,13 @@ public class MessageDigestExample extends InstallBCSupport {
         Assert.assertArrayEquals(sha256, sha256_1);
 
     }
+
+    @Test
+    public void hmacTest() throws Exception {
+        SecretKey aes = HMacCrypter.toHMacKey(ByteUtil.randomBytes(16), "AES");
+        byte[] HmacSHA256 = HMacCrypter.computeMac("HmacSHA256", aes, "123456".getBytes("UTF-8"));
+    }
+
 
 
 }
