@@ -2,91 +2,39 @@ package com.ainge.easycrypto.example;
 
 import com.ainge.easycrypto.certificate.JcaX509Certificate;
 import com.ainge.easycrypto.generators.RSAKeyPairGenerator;
+import com.ainge.easycrypto.keystore.KeyStoreCertInfos;
+import com.ainge.easycrypto.keystore.KeyStoreUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
 import java.security.KeyPair;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
-
 /**
- * 证书的ASN.1结构，来源于RFC 5280规范
- * <p>
- * Certificate  ::=  SEQUENCE  {
- * tbsCertificate       TBSCertificate,
- * signatureAlgorithm   AlgorithmIdentifier,
- * signatureValue       BIT STRING  }
- * <p>
- * TBSCertificate  ::=  SEQUENCE  {
- * version         [0]  EXPLICIT Version DEFAULT v1,
- * serialNumber         CertificateSerialNumber,
- * signature            AlgorithmIdentifier,
- * issuer               Name,
- * validity             Validity,
- * subject              Name,
- * subjectPublicKeyInfo SubjectPublicKeyInfo,
- * issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
- * -- If present, version MUST be v2 or v3
- * subjectUniqueID [2]  IMPLICIT UniqueIdentifier OPTIONAL,
- * -- If present, version MUST be v2 or v3
- * extensions      [3]  EXPLICIT Extensions OPTIONAL
- * -- If present, version MUST be v3
- * }
- * <p>
- * Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
- * <p>
- * CertificateSerialNumber  ::=  INTEGER
- * <p>
- * Validity ::= SEQUENCE {
- * notBefore      Time,
- * notAfter       Time }
- * <p>
- * Time ::= CHOICE {
- * utcTime        UTCTime,
- * generalTime    GeneralizedTime }
- * <p>
- * UniqueIdentifier  ::=  BIT STRING
- * <p>
- * SubjectPublicKeyInfo  ::=  SEQUENCE  {
- * algorithm            AlgorithmIdentifier,
- * subjectPublicKey     BIT STRING  }
- * <p>
- * Extensions  ::=  SEQUENCE SIZE (1..MAX) OF Extension
- * <p>
- * Extension  ::=  SEQUENCE  {
- * extnID      OBJECT IDENTIFIER,
- * critical    BOOLEAN DEFAULT FALSE,
- * extnValue   OCTET STRING
- * -- contains the DER encoding of an ASN.1 value
- * -- corresponding to the extension type identified
- * -- by extnID
- * }
- */
-
-/**
- * 演示：
- * 1.签发一张CA ROOT 证书
- * 2.签发一张子 CA 证书
- * 3.签发一张实体用户证书
- *
  * @author: Ainge
- * @Time: 2019/12/23 23:06
+ * @Time: 2019/12/26 23:44
  */
-public class CertSignerExample extends InstallBCSupport {
+public class KeyStoreExample extends InstallBCSupport {
 
 
-    /**
-     * 直接签发证书，后续还做根据P10证书请求签发证书
-     */
     @Test
-    public void signRootCaCert() throws Exception {
+    public void genKeyStore()throws Exception {
+        String jksFileName = "~/Desktop/test.jks";
+        String pfx12FileName = "~/Desktop/test.p12";
+        KeyStoreCertInfos keyStoreCertInfos = genKeyStoreCertInfos();
+        // KeyStoreUtils.generateJKS();
+        // TODO Ainge ,先休息
+
+
+    }
+
+    public static KeyStoreCertInfos genKeyStoreCertInfos()throws Exception{
+        // 签发证书
         X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
                 .addRDN(BCStyle.C, "CN")
                 .addRDN(BCStyle.ST, "Guangdong")
@@ -124,20 +72,16 @@ public class CertSignerExample extends InstallBCSupport {
         // 3.为AingeZzz签发一张代码签名证书
         X509CertificateHolder userCertificateHolder = JcaX509Certificate.createSpecialPurposeEndEntity(subCaHolder, subCAKeyPair.getPrivate(), alg, userKeyPair.getPublic(), userSubject, certValidity, KeyPurposeId.id_kp_codeSigning);
 
-        // 4.输入代码签名证书
+        // 4.代码签名证书
         X509Certificate x509Certificate = JcaX509Certificate.convertX509CertificateHolder(userCertificateHolder);
-        System.out.println(JcaPEMPrint(x509Certificate));
 
+        // 证书链
+        Certificate[] chain = {
+                JcaX509Certificate.convertX509CertificateHolder(trustAnchor),
+                JcaX509Certificate.convertX509CertificateHolder(subCaHolder)
+                ,x509Certificate};
+        return new KeyStoreCertInfos(x509Certificate,chain,userKeyPair.getPrivate());
     }
 
-
-    public static String JcaPEMPrint(Object object) throws Exception {
-        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-        JcaPEMWriter pemWrt = new JcaPEMWriter(new OutputStreamWriter(bOut));
-        pemWrt.writeObject(object);
-        pemWrt.close();
-        bOut.close();
-        return new String(bOut.toByteArray(), "utf-8");
-    }
 
 }
