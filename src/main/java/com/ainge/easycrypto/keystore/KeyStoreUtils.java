@@ -44,7 +44,7 @@ public class KeyStoreUtils {
      * @throws CryptoException
      */
     public static KeyStoreCertInfos getKeyStoreFromJKS(String alias, String keyPwd, String storePwd, String fileName) throws CryptoException {
-        return load(KeyStoreType.JKS,alias,keyPwd,storePwd,fileName);
+        return load(KeyStoreType.JKS, alias, keyPwd, storePwd, fileName);
     }
 
     /**
@@ -58,7 +58,7 @@ public class KeyStoreUtils {
      * @throws CryptoException
      */
     public static KeyStoreCertInfos getKeyStoreFromPKCS12(String alias, String keyPwd, String storePwd, String fileName) throws CryptoException {
-        return load(KeyStoreType.PKCS12,alias,keyPwd,storePwd,fileName);
+        return load(KeyStoreType.PKCS12, alias, keyPwd, storePwd, fileName);
     }
 
 
@@ -77,17 +77,20 @@ public class KeyStoreUtils {
         FileInputStream fileInputStream = null;
         try {
             fileInputStream = new FileInputStream(fileName);
-            KeyStore store = KeyStore.getInstance(type.name(), "BC");
+            KeyStore store = null;
+            if (type == KeyStoreType.JKS) {
+                store = KeyStore.getInstance(type.name());
+            } else {
+                store = KeyStore.getInstance(type.name(), "BC");
+            }
             store.load(fileInputStream, storePwd == null ? null : storePwd.toCharArray());
 
             if (!store.containsAlias(alias)) {
                 throw new CryptoException("the alias=" + alias + " not exists in this keystore");
             }
-
             Certificate certificate = store.getCertificate(alias);
-            Certificate[] chain = store.getCertificateChain(alias);
             Key privateKey = store.getKey(alias, keyPwd == null ? null : keyPwd.toCharArray());
-            return new KeyStoreCertInfos(certificate, chain, privateKey);
+            return new KeyStoreCertInfos(certificate, privateKey);
         } catch (Exception e) {
             throw new CryptoException(e.getMessage(), e);
         } finally {
@@ -107,17 +110,16 @@ public class KeyStoreUtils {
      * 产生JKS证书库文件
      *
      * @param cred     包含证书和私钥的X500PrivateCredential对象
-     * @param chain    证书链
      * @param alias    证书别名
      * @param keyPwd   证书私钥访问密码
      * @param storePwd 证书库访问密码
      * @param fileName 保存证书库的文件名
      * @throws CryptoException
      */
-    public static void generateJKS(X500PrivateCredential cred, Certificate[] chain, String alias,
+    public static void generateJKS(X500PrivateCredential cred,  String alias,
                                    String keyPwd, String storePwd, String fileName) throws CryptoException {
         try {
-            generateKeyStoreFile(cred, chain, KeyStoreType.JKS, alias, keyPwd, storePwd, fileName);
+            generateKeyStoreFile(cred, KeyStoreType.JKS, alias, keyPwd, storePwd, fileName);
         } catch (Exception e) {
             throw new CryptoException(e.getMessage(), e);
         }
@@ -127,17 +129,16 @@ public class KeyStoreUtils {
      * 产生pfx12证书库文件
      *
      * @param cred     包含证书和私钥的X500PrivateCredential对象
-     * @param chain    证书链
      * @param alias    证书别名
      * @param keyPwd   证书私钥访问密码
      * @param storePwd 证书库访问密码
      * @param fileName 保存证书库的文件名
      * @throws CryptoException
      */
-    public static void generatePfx12(X500PrivateCredential cred, Certificate[] chain, String alias,
+    public static void generatePfx12(X500PrivateCredential cred, String alias,
                                      String keyPwd, String storePwd, String fileName) throws CryptoException {
         try {
-            generateKeyStoreFile(cred, chain, KeyStoreType.PKCS12, alias, keyPwd, storePwd, fileName);
+            generateKeyStoreFile(cred, KeyStoreType.PKCS12, alias, keyPwd, storePwd, fileName);
         } catch (Exception e) {
             throw new CryptoException(e.getMessage(), e);
         }
@@ -147,7 +148,6 @@ public class KeyStoreUtils {
      * 产生证书库文件
      *
      * @param cred     包含证书和私钥的X500PrivateCredential对象
-     * @param chain    证书链
      * @param type     证书库类型（目前只支持jks，pfx12）
      * @param alias    证书别名
      * @param keyPwd   证书私钥访问密码
@@ -159,12 +159,17 @@ public class KeyStoreUtils {
      * @throws IOException
      * @throws NoSuchProviderException
      */
-    public static void generateKeyStoreFile(X500PrivateCredential cred, Certificate[] chain, KeyStoreType type,
+    public static void generateKeyStoreFile(X500PrivateCredential cred, KeyStoreType type,
                                             String alias, String keyPwd, String storePwd, String fileName)
             throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, NoSuchProviderException {
-        KeyStore store = KeyStore.getInstance(type.name(), "BC");
+        KeyStore store = null;
+        if (type == KeyStoreType.JKS) {
+            store = KeyStore.getInstance(type.name());
+        } else {
+            store = KeyStore.getInstance(type.name(), "BC");
+        }
         store.load(null, null);
-        store.setKeyEntry(alias, cred.getPrivateKey(), keyPwd == null ? null : keyPwd.toCharArray(), chain);
+        store.setKeyEntry(alias, cred.getPrivateKey(), keyPwd == null ? null : keyPwd.toCharArray(), new Certificate[]{cred.getCertificate()});
         FileOutputStream fOut = null;
         try {
             fOut = new FileOutputStream(fileName);

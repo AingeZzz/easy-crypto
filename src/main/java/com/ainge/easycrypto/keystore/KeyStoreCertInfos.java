@@ -10,21 +10,18 @@ import java.security.cert.Certificate;
  */
 public class KeyStoreCertInfos {
     private Certificate certificate;
-    private Certificate[] chain;
     private PrivateKey privateKey;
 
     public KeyStoreCertInfos() {
     }
 
-    public KeyStoreCertInfos(Certificate certificate, Certificate[] chain, PrivateKey privateKey) {
+    public KeyStoreCertInfos(Certificate certificate, PrivateKey privateKey) {
         this.certificate = certificate;
-        this.chain = chain;
         this.privateKey = privateKey;
     }
 
-    public KeyStoreCertInfos(Certificate certificate, Certificate[] chain, Key privateKey) {
+    public KeyStoreCertInfos(Certificate certificate, Key privateKey) {
         this.certificate = certificate;
-        this.chain = chain;
         this.setPrivateKey(privateKey);
     }
 
@@ -32,9 +29,6 @@ public class KeyStoreCertInfos {
         return certificate;
     }
 
-    public Certificate[] getChain() {
-        return chain;
-    }
 
     public PrivateKey getPrivateKey() {
         return privateKey;
@@ -44,9 +38,6 @@ public class KeyStoreCertInfos {
         this.certificate = certificate;
     }
 
-    public void setChain(Certificate[] chain) {
-        this.chain = chain;
-    }
 
     public void setPrivateKey(PrivateKey privateKey) {
         this.privateKey = privateKey;

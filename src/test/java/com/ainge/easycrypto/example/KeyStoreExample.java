@@ -9,9 +9,12 @@ import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.cert.X509CertificateHolder;
+import org.junit.Assert;
 import org.junit.Test;
 
+import javax.security.auth.x500.X500PrivateCredential;
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -21,19 +24,48 @@ import java.security.cert.X509Certificate;
  */
 public class KeyStoreExample extends InstallBCSupport {
 
+    // 更换你的文件路径
+    String jksFileName = "/Users/aingezhu/Desktop/test.jks";
+    String pfx12FileName = "/Users/aingezhu/Desktop/test.p12";
+    String alias = "ainge";
+    String keyPwd = "ainge123";
+    String storePwd = "ainge456";
 
     @Test
-    public void genKeyStore()throws Exception {
-        String jksFileName = "~/Desktop/test.jks";
-        String pfx12FileName = "~/Desktop/test.p12";
+    public void genKeyStore() throws Exception {
         KeyStoreCertInfos keyStoreCertInfos = genKeyStoreCertInfos();
-        // KeyStoreUtils.generateJKS();
-        // TODO Ainge ,先休息
+        Certificate certificate = keyStoreCertInfos.getCertificate();
+        X500PrivateCredential cred = KeyStoreUtils.convertX509Certificate((X509Certificate) certificate, keyStoreCertInfos.getPrivateKey());
+        // 生成两个证书库文件
+        KeyStoreUtils.generateJKS(cred, alias, keyPwd, storePwd, jksFileName);
+        KeyStoreUtils.generatePfx12(cred, alias, keyPwd, storePwd, pfx12FileName);
+    }
 
+    @Test
+    public void loadKeyStore() throws Exception {
+        // 1.从jks读取
+        KeyStoreCertInfos keyStoreFromJKS = KeyStoreUtils.getKeyStoreFromJKS(alias, keyPwd, storePwd, jksFileName);
+        Certificate certificate = keyStoreFromJKS.getCertificate();
+        PrivateKey privateKey = keyStoreFromJKS.getPrivateKey();
+        Assert.assertNotNull(certificate);
+        Assert.assertNotNull(privateKey);
+
+        // 2.从pfx12读取
+        KeyStoreCertInfos keyStoreFromPKCS12 = KeyStoreUtils.getKeyStoreFromPKCS12(alias, keyPwd, storePwd, pfx12FileName);
+        Certificate certificate1 = keyStoreFromPKCS12.getCertificate();
+        PrivateKey privateKey1 = keyStoreFromPKCS12.getPrivateKey();
+        Assert.assertNotNull(certificate1);
+        Assert.assertNotNull(privateKey1);
+
+        // 比较
+        Assert.assertTrue(privateKey.equals(privateKey1));
+        Assert.assertTrue(certificate.equals(certificate1));
+        Assert.assertArrayEquals(certificate.getEncoded(), certificate1.getEncoded());
 
     }
 
-    public static KeyStoreCertInfos genKeyStoreCertInfos()throws Exception{
+
+    public static KeyStoreCertInfos genKeyStoreCertInfos() throws Exception {
         // 签发证书
         X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
                 .addRDN(BCStyle.C, "CN")
@@ -75,12 +107,7 @@ public class KeyStoreExample extends InstallBCSupport {
         // 4.代码签名证书
         X509Certificate x509Certificate = JcaX509Certificate.convertX509CertificateHolder(userCertificateHolder);
 
-        // 证书链
-        Certificate[] chain = {
-                JcaX509Certificate.convertX509CertificateHolder(trustAnchor),
-                JcaX509Certificate.convertX509CertificateHolder(subCaHolder)
-                ,x509Certificate};
-        return new KeyStoreCertInfos(x509Certificate,chain,userKeyPair.getPrivate());
+        return new KeyStoreCertInfos(x509Certificate, userKeyPair.getPrivate());
     }
 
 
