@@ -11,6 +11,7 @@ import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,6 +41,8 @@ public class JcaPKCS10Example extends InstallBCSupport {
                         new GeneralName(
                                 GeneralName.rfc822Name,
                                 "aingezhu@163.com")));
+        JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        extGen.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(keyPair.getPublic()));
 
         Extensions extensions = extGen.generate();
         PKCS10CertificationRequest certificationRequest = JcaPKCS10.createPKCS10(keyPair, "SM3WithSM2", subject, extensions);
@@ -54,9 +57,10 @@ public class JcaPKCS10Example extends InstallBCSupport {
                 ASN1ObjectIdentifier[] extensionOIDs = instance.getExtensionOIDs();
                 for (ASN1ObjectIdentifier identifier : extensionOIDs) {
                     Extension extension = instance.getExtension(identifier);
-                    System.out.println(extension.isCritical());
-                    System.out.println(extension.getExtnId());
-                    System.out.println(ASN1Dump.dumpAsString(extension.getExtnValue(),true));
+                    System.out.println(ASN1Dump.dumpAsString(extension, true));
+                    // System.out.println(extension.isCritical());
+                    // System.out.println(extension.getExtnId());
+                    // System.out.println(ASN1Dump.dumpAsString(extension.getExtnValue(),true));
                 }
             }
         }

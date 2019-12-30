@@ -1,7 +1,11 @@
 package com.ainge.easycrypto.certificate;
 
+import com.ainge.easycrypto.exception.CryptoException;
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.pkcs.Attribute;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.RFC4519Style;
 import org.bouncycastle.asn1.x509.*;
@@ -9,8 +13,11 @@ import org.bouncycastle.cert.*;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -82,13 +89,13 @@ public class JcaX509Certificate {
     /**
      * 构建一个自签名V3证书，可以用作信任锚或根证书。
      *
-     * @param keyPair 用于签名和提供公钥的密钥对
-     * @param sigAlg  用于与证书签名的签名算法（算法需要与密钥对匹配，例如RSA密钥对，需要传人RSA算法，SM2传入SM2算法，EC密钥对传入EC算法）
-     * @param subject          用户主题
-     * @param certValidity     证书有效期（单位小时）
+     * @param keyPair      用于签名和提供公钥的密钥对
+     * @param sigAlg       用于与证书签名的签名算法（算法需要与密钥对匹配，例如RSA密钥对，需要传人RSA算法，SM2传入SM2算法，EC密钥对传入EC算法）
+     * @param subject      用户主题
+     * @param certValidity 证书有效期（单位小时）
      * @return 包含V3证书的X509CertificateHolder
      */
-    public static X509CertificateHolder createTrustAnchor(KeyPair keyPair, String sigAlg,X500Name subject, int certValidity) throws OperatorCreationException, NoSuchAlgorithmException, CertIOException {
+    public static X509CertificateHolder createTrustAnchor(KeyPair keyPair, String sigAlg, X500Name subject, int certValidity) throws OperatorCreationException, NoSuchAlgorithmException, CertIOException {
 
         X509v3CertificateBuilder certBldr = new JcaX509v3CertificateBuilder(subject, calculateSerialNumber(), calculateDate(0), calculateDate(certValidity), subject, keyPair.getPublic());
         // 添加证书扩展
@@ -169,6 +176,71 @@ public class JcaX509Certificate {
     }
 
     /**
+     * 通过csr证书请求文件，签发实体证书
+     *
+     * @param signerCert   签发者证书
+     * @param signerKey    签发者私钥
+     * @param sigAlg       签发算法
+     * @param certValidity 证书周期
+     * @param certReq      证书请求内容
+     * @return 返回实体证书
+     * @throws Exception 签发过程失败
+     */
+    public static X509CertificateHolder createEndEntity(X509CertificateHolder signerCert, PrivateKey signerKey, String sigAlg, int certValidity, byte[] certReq) throws Exception {
+
+        JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(certReq).setProvider("BC");
+        // 先验证一下csr文件签名
+        PublicKey key = jcaRequest.getPublicKey();
+        ContentVerifierProvider verifierProvider = new JcaContentVerifierProviderBuilder().setProvider("BC").build(key);
+        boolean signatureValid = jcaRequest.isSignatureValid(verifierProvider);
+        if (!signatureValid) {
+            throw new CryptoException("certReq signature valid fail...");
+        }
+        X500Name subject = jcaRequest.getSubject();
+        if (subject == null) {
+            throw new CryptoException("get subject from certReq fail...");
+        }
+        // 准备签发证书
+        X509v3CertificateBuilder certBldr = new JcaX509v3CertificateBuilder(signerCert.getSubject(), calculateSerialNumber(), calculateDate(0), calculateDate(certValidity), subject, key);
+        JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        // 授权密钥标识，也就是签发者的密钥标识ID
+        certBldr.addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(signerCert))
+                // 主题密钥标识，类似该证书公钥的一个标识ID
+                .addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(key))
+                // 基本约束，实体证书，就不属于CA证书了
+                .addExtension(Extension.basicConstraints, true, new BasicConstraints(false))
+                // 密钥用法扩展，说明该证书对应的私钥可以用于数字签名
+                .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
+
+
+        Attribute[] attributes = jcaRequest.getAttributes();
+        for (Attribute attribute : attributes) {
+            if (PKCSObjectIdentifiers.pkcs_9_at_extensionRequest.equals(attribute.getAttrType())) {
+                // 来源证书请求的扩展
+                ASN1Encodable asn1Encodable = attribute.getAttrValues().getObjectAt(0);
+                Extensions instance = Extensions.getInstance(asn1Encodable);
+                ASN1ObjectIdentifier[] extensionOIDs = instance.getExtensionOIDs();
+                for (ASN1ObjectIdentifier identifier : extensionOIDs) {
+                    Extension extension = instance.getExtension(identifier);
+                    String oid = extension.getExtnId().getId();
+                    // 基本常用扩展应该由证书签发者自己控制
+                    if (Extension.authorityKeyIdentifier.getId().equals(oid) ||
+                            Extension.subjectKeyIdentifier.getId().equals(oid) ||
+                            Extension.basicConstraints.getId().equals(oid) ||
+                            Extension.keyUsage.getId().equals(oid)) {
+                        continue;
+                    }
+                    // 添加csr，certReq中包含的扩展，此处暂时不对扩展做校验了
+                    certBldr.addExtension(extension);
+                }
+            }
+        }
+        ContentSigner signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(signerKey);
+        return certBldr.build(signer);
+    }
+
+
+    /**
      * 创建特定用途的用户证书
      * 如：代码签名证书，OCSP证书，SSL服务器证书，SSL客户端证书，时间戳服务器证书，邮箱服务器等
      * 根据KeyPurposeId（RFC5280规范）来确定用途扩展
@@ -182,8 +254,10 @@ public class JcaX509Certificate {
      * @param keyPurpose   要与此证书的公钥关联的特定KeyPurposeId。
      * @return 包含V3证书的X509CertificateHolder
      */
-    public static X509CertificateHolder createSpecialPurposeEndEntity(X509CertificateHolder signerCert, PrivateKey signerKey, String sigAlg,
-                                                                      PublicKey certKey, X500Name subject, int certValidity, KeyPurposeId keyPurpose) throws OperatorCreationException, CertIOException, GeneralSecurityException {
+    public static X509CertificateHolder createSpecialPurposeEndEntity(X509CertificateHolder
+                                                                              signerCert, PrivateKey signerKey, String sigAlg,
+                                                                      PublicKey certKey, X500Name subject, int certValidity, KeyPurposeId keyPurpose) throws
+            OperatorCreationException, CertIOException, GeneralSecurityException {
 
         X509v3CertificateBuilder certBldr = new JcaX509v3CertificateBuilder(signerCert.getSubject(), calculateSerialNumber(), calculateDate(0), calculateDate(certValidity), subject, certKey);
         JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
