@@ -1,6 +1,7 @@
 package com.ainge.easycrypto.example;
 
 import com.ainge.easycrypto.asn1.SimpleStructure;
+import org.bouncycastle.asn1.util.ASN1Dump;
 import org.junit.Test;
 
 import java.util.Date;
@@ -26,6 +27,8 @@ public class SimpleStructureExample {
         System.out.println(new String(instance.getData(),"utf-8"));
         System.out.println(instance.getComment());
         System.out.println(instance.getExtraData());
+        System.out.println("===========================");
+        System.out.println(ASN1Dump.dumpAsString(simpleStructure,true));
     }
 
 
