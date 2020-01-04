@@ -11,8 +11,6 @@ import org.junit.Test;
 import java.security.KeyPair;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
-import java.security.cert.X509Certificate;
-import java.util.Date;
 import java.util.Map;
 
 /**
@@ -45,6 +43,7 @@ public class JcaCRLExample extends InstallBCSupport{
         X509CRLHolder nexCrl = JcaX509CRL.updateCRL(subKeyPair.getPrivate(), "SHA256WithRSA", x509Certificate, crl, nextUpdate, userCert, CRLReason.lookup(CRLReason.removeFromCRL));
         X509CRL nextX509CRL = JcaX509CRL.convertX509CRLHolder(nexCrl);
         System.out.println(nextX509CRL);
+
     }
 
 
