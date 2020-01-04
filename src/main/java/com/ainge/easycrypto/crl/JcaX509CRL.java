@@ -2,8 +2,10 @@ package com.ainge.easycrypto.crl;
 
 import org.bouncycastle.asn1.ASN1GeneralizedTime;
 import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.cert.X509CRLEntryHolder;
 import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v2CRLBuilder;
@@ -17,7 +19,8 @@ import java.math.BigInteger;
 import java.security.PrivateKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
-import java.util.Date;
+import java.security.cert.X509CRLEntry;
+import java.util.*;
 
 /**
  * 证书注销列表
@@ -71,10 +74,6 @@ public class JcaX509CRL {
     public static X509CRLHolder signCRL(X509CRLHolder previousCaCRL, PrivateKey caKey, String sigAlg, X509CertificateHolder caCert, int nextUpdate, X509CertificateHolder certToRevoke, CRLReason crlReason) throws Exception {
         // 指定签发者信息，这次签发时间
         X509v2CRLBuilder crlGen = new X509v2CRLBuilder(caCert.getSubject(), calculateDate(0));
-        if (previousCaCRL != null) {
-            // 如果previousCaCRL不为空，则代表则更新该CRL
-            crlGen.addCRL(previousCaCRL);
-        }
         // TODO 后续将全量CRL，增量CRL，以及CRL分布策略 加上
         JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
         crlGen.addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(caCert));
@@ -84,7 +83,7 @@ public class JcaX509CRL {
         crlGen.setNextUpdate(calculateDate(nextUpdate));
         // 添加吊销原因
         ExtensionsGenerator extGen = new ExtensionsGenerator();
-        extGen.addExtension(createReasonExtension(CRLReason.privilegeWithdrawn));
+        extGen.addExtension(createReasonExtension(crlReason.getValue().intValue()));
         if (certToRevoke != null) {
             // 证书签发者扩展
             Extension certificateIssuerExtension = createCertificateIssuerExtension(certToRevoke.getIssuer());
@@ -92,6 +91,12 @@ public class JcaX509CRL {
             // 注销的证书的序列号要跟crlReason绑定起来
             crlGen.addCRLEntry(certToRevoke.getSerialNumber(), new Date(), extGen.generate());
         }
+        if (previousCaCRL != null) {
+            // 如果previousCaCRL不为空，则代表则更新需要包含该CRL下的已经被注销的证书
+            // TODO 需要去除重复的certToRevoke
+            crlGen.addCRL(previousCaCRL);
+        }
+
         // 签发CRL
         ContentSigner signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(caKey);
         return crlGen.build(signer);
