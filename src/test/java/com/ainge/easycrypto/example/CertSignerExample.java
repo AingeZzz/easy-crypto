@@ -24,6 +24,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -92,52 +94,24 @@ import java.security.cert.X509Certificate;
 public class CertSignerExample extends InstallBCSupport {
 
 
+    public static final String _caKeyPair = "caKeyPair";
+    public static final String _subKeyPair = "subKeyPair";
+    public static final String _userKeyPair = "userKeyPair";
+
+    public static final String _caCert = "caCert";
+    public static final String _subCert = "subCert";
+    public static final String _userCert = "userCert";
+
     /**
      * 直接签发证书，后续还做根据P10证书请求签发证书
      */
     @Test
     public void signCaCert() throws Exception {
-        X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
-                .addRDN(BCStyle.C, "CN")
-                .addRDN(BCStyle.ST, "Guangdong")
-                .addRDN(BCStyle.L, "Guangzhou")
-                .addRDN(BCStyle.O, "谜之家")
-                .addRDN(BCStyle.CN, "谜之家根CA");
-        X500Name rootSubject = x500NameBld.build();
-
-        KeyPair keyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
-        String alg = "SHA256WithRSA";
-        // 证书有效期 1年 24 * 365
-        int certValidity = 24 * 365;
-        // 1.签发root ca
-        X509CertificateHolder trustAnchor = JcaX509Certificate.createTrustAnchor(keyPair, alg, rootSubject, certValidity);
-
-        // 子ca主题
-        X500Name subCaSubject = new X500NameBuilder(BCStyle.INSTANCE)
-                .addRDN(BCStyle.C, "CN")
-                .addRDN(BCStyle.ST, "Guangdong")
-                .addRDN(BCStyle.L, "Guangzhou")
-                .addRDN(BCStyle.O, "谜之家")
-                .addRDN(BCStyle.CN, "谜之家二级CA").build();
-        // 2.签发子CA证书
-        KeyPair subCAKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
-        int followingCACerts = 0; //该子CA不允许再签发下级CA，只能签发终端实体证书
-        X509CertificateHolder subCaHolder = JcaX509Certificate.createIntermediateCertificate(trustAnchor, keyPair.getPrivate(), alg, subCAKeyPair.getPublic(), subCaSubject, certValidity, followingCACerts);
-        // 终端用户
-        X500Name userSubject = new X500NameBuilder(BCStyle.INSTANCE)
-                .addRDN(BCStyle.C, "CN")
-                .addRDN(BCStyle.ST, "GuangXi")
-                .addRDN(BCStyle.L, "Nanning")
-                .addRDN(BCStyle.O, "谜之家")
-                .addRDN(BCStyle.CN, "AingeZzz").build();
-        KeyPair userKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
-        // 3.为AingeZzz签发一张代码签名证书
-        X509CertificateHolder userCertificateHolder = JcaX509Certificate.createSpecialPurposeEndEntity(subCaHolder, subCAKeyPair.getPrivate(), alg, userKeyPair.getPublic(), userSubject, certValidity, KeyPurposeId.id_kp_codeSigning);
-
+        Map<String, Object> stringObjectMap = signCert();
+        X509CertificateHolder userCertificateHolder = (X509CertificateHolder)stringObjectMap.get(_userCert);
         // 4.输入代码签名证书
         X509Certificate x509Certificate = JcaX509Certificate.convertX509CertificateHolder(userCertificateHolder);
         System.out.println(JcaPEMPrint(x509Certificate));
-
     }
 
 
@@ -188,6 +162,59 @@ public class CertSignerExample extends InstallBCSupport {
 
     }
 
+
+    /**
+     * 签发一张rootCa证书，subCa证书，用户证书，以及将对应的密钥对封装在map中
+     * @return
+     * @throws Exception
+     */
+    public static Map<String,Object> signCert() throws Exception{
+        X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
+                .addRDN(BCStyle.C, "CN")
+                .addRDN(BCStyle.ST, "Guangdong")
+                .addRDN(BCStyle.L, "Guangzhou")
+                .addRDN(BCStyle.O, "谜之家")
+                .addRDN(BCStyle.CN, "谜之家根CA");
+        X500Name rootSubject = x500NameBld.build();
+
+        KeyPair keyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+        String alg = "SHA256WithRSA";
+        // 证书有效期 1年 24 * 365
+        int certValidity = 24 * 365;
+        // 1.签发root ca
+        X509CertificateHolder trustAnchor = JcaX509Certificate.createTrustAnchor(keyPair, alg, rootSubject, certValidity);
+
+        // 子ca主题
+        X500Name subCaSubject = new X500NameBuilder(BCStyle.INSTANCE)
+                .addRDN(BCStyle.C, "CN")
+                .addRDN(BCStyle.ST, "Guangdong")
+                .addRDN(BCStyle.L, "Guangzhou")
+                .addRDN(BCStyle.O, "谜之家")
+                .addRDN(BCStyle.CN, "谜之家二级CA").build();
+        // 2.签发子CA证书
+        KeyPair subCAKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+        int followingCACerts = 0; //该子CA不允许再签发下级CA，只能签发终端实体证书
+        X509CertificateHolder subCaHolder = JcaX509Certificate.createIntermediateCertificate(trustAnchor, keyPair.getPrivate(), alg, subCAKeyPair.getPublic(), subCaSubject, certValidity, followingCACerts);
+        // 终端用户
+        X500Name userSubject = new X500NameBuilder(BCStyle.INSTANCE)
+                .addRDN(BCStyle.C, "CN")
+                .addRDN(BCStyle.ST, "GuangXi")
+                .addRDN(BCStyle.L, "Nanning")
+                .addRDN(BCStyle.O, "谜之家")
+                .addRDN(BCStyle.CN, "AingeZzz").build();
+        KeyPair userKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+        // 3.为AingeZzz签发一张代码签名证书
+        X509CertificateHolder userCertificateHolder = JcaX509Certificate.createSpecialPurposeEndEntity(subCaHolder, subCAKeyPair.getPrivate(), alg, userKeyPair.getPublic(), userSubject, certValidity, KeyPurposeId.id_kp_codeSigning);
+
+        Map<String,Object> map = new HashMap<>();
+        map.put(_caKeyPair,keyPair);
+        map.put(_subKeyPair,subCAKeyPair);
+        map.put(_userKeyPair,userKeyPair);
+        map.put(_caCert,trustAnchor);
+        map.put(_subCert,subCaHolder);
+        map.put(_userCert,userCertificateHolder);
+        return map;
+    }
 
     public static String JcaPEMPrint(Object object) throws Exception {
         ByteArrayOutputStream bOut = new ByteArrayOutputStream();
