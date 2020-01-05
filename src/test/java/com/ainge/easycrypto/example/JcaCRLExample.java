@@ -24,7 +24,7 @@ public class JcaCRLExample extends InstallBCSupport{
     @Test
     public void signCRL() throws Exception {
         // 签发证书
-        Map<String, Object> stringObjectMap = CertSignerExample.signCert();
+        Map<String, Object> stringObjectMap = CertSignerExample.signCert(false);
         KeyPair subKeyPair = (KeyPair)stringObjectMap.get(CertSignerExample._subKeyPair);
         X509CertificateHolder x509Certificate = (X509CertificateHolder) stringObjectMap.get(CertSignerExample._subCert);
         X509CertificateHolder userCert = (X509CertificateHolder) stringObjectMap.get(CertSignerExample._userCert);

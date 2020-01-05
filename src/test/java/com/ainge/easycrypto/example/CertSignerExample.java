@@ -101,14 +101,16 @@ public class CertSignerExample extends InstallBCSupport {
     public static final String _caCert = "caCert";
     public static final String _subCert = "subCert";
     public static final String _userCert = "userCert";
+    public static final String _alg = "alg";
+
 
     /**
      * 直接签发证书，后续还做根据P10证书请求签发证书
      */
     @Test
     public void signCaCert() throws Exception {
-        Map<String, Object> stringObjectMap = signCert();
-        X509CertificateHolder userCertificateHolder = (X509CertificateHolder)stringObjectMap.get(_userCert);
+        Map<String, Object> stringObjectMap = signCert(true);
+        X509CertificateHolder userCertificateHolder = (X509CertificateHolder) stringObjectMap.get(_userCert);
         // 4.输入代码签名证书
         X509Certificate x509Certificate = JcaX509Certificate.convertX509CertificateHolder(userCertificateHolder);
         System.out.println(JcaPEMPrint(x509Certificate));
@@ -165,10 +167,29 @@ public class CertSignerExample extends InstallBCSupport {
 
     /**
      * 签发一张rootCa证书，subCa证书，用户证书，以及将对应的密钥对封装在map中
+     *
+     * @param isSm2 true=SM2,false=RSA
      * @return
      * @throws Exception
      */
-    public static Map<String,Object> signCert() throws Exception{
+    public static Map<String, Object> signCert(boolean isSm2) throws Exception {
+        KeyPair keyPair;
+        String alg;
+        KeyPair subCAKeyPair;
+        KeyPair userKeyPair;
+        if (isSm2) {
+            keyPair = SM2KeypairGenerator.generateSM2KeyPair();
+            alg = "SM3WithSM2";
+            subCAKeyPair = SM2KeypairGenerator.generateSM2KeyPair();
+            userKeyPair = SM2KeypairGenerator.generateSM2KeyPair();
+        } else {
+            keyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+            alg = "SHA256WithRSA";
+            subCAKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+            userKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+        }
+
+
         X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
                 .addRDN(BCStyle.C, "CN")
                 .addRDN(BCStyle.ST, "Guangdong")
@@ -177,8 +198,7 @@ public class CertSignerExample extends InstallBCSupport {
                 .addRDN(BCStyle.CN, "谜之家根CA");
         X500Name rootSubject = x500NameBld.build();
 
-        KeyPair keyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
-        String alg = "SHA256WithRSA";
+
         // 证书有效期 1年 24 * 365
         int certValidity = 24 * 365;
         // 1.签发root ca
@@ -192,7 +212,7 @@ public class CertSignerExample extends InstallBCSupport {
                 .addRDN(BCStyle.O, "谜之家")
                 .addRDN(BCStyle.CN, "谜之家二级CA").build();
         // 2.签发子CA证书
-        KeyPair subCAKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+
         int followingCACerts = 0; //该子CA不允许再签发下级CA，只能签发终端实体证书
         X509CertificateHolder subCaHolder = JcaX509Certificate.createIntermediateCertificate(trustAnchor, keyPair.getPrivate(), alg, subCAKeyPair.getPublic(), subCaSubject, certValidity, followingCACerts);
         // 终端用户
@@ -202,17 +222,18 @@ public class CertSignerExample extends InstallBCSupport {
                 .addRDN(BCStyle.L, "Nanning")
                 .addRDN(BCStyle.O, "谜之家")
                 .addRDN(BCStyle.CN, "AingeZzz").build();
-        KeyPair userKeyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+
         // 3.为AingeZzz签发一张代码签名证书
         X509CertificateHolder userCertificateHolder = JcaX509Certificate.createSpecialPurposeEndEntity(subCaHolder, subCAKeyPair.getPrivate(), alg, userKeyPair.getPublic(), userSubject, certValidity, KeyPurposeId.id_kp_codeSigning);
 
-        Map<String,Object> map = new HashMap<>();
-        map.put(_caKeyPair,keyPair);
-        map.put(_subKeyPair,subCAKeyPair);
-        map.put(_userKeyPair,userKeyPair);
-        map.put(_caCert,trustAnchor);
-        map.put(_subCert,subCaHolder);
-        map.put(_userCert,userCertificateHolder);
+        Map<String, Object> map = new HashMap<>();
+        map.put(_caKeyPair, keyPair);
+        map.put(_subKeyPair, subCAKeyPair);
+        map.put(_userKeyPair, userKeyPair);
+        map.put(_caCert, trustAnchor);
+        map.put(_subCert, subCaHolder);
+        map.put(_userCert, userCertificateHolder);
+        map.put(_alg, alg);
         return map;
     }
 
