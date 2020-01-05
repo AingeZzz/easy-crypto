@@ -2,19 +2,24 @@ package com.ainge.easycrypto.example;
 
 import com.ainge.easycrypto.certificate.JcaX509Certificate;
 import com.ainge.easycrypto.cms.envelopeddata.EnvelopedData;
+import com.ainge.easycrypto.cms.envelopeddata.JavaMailSMIMEEnvelopedData;
 import com.ainge.easycrypto.generators.RSAKeyPairGenerator;
 import com.ainge.easycrypto.generators.SM2KeypairGenerator;
 import com.ainge.easycrypto.util.ByteUtil;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.*;
 import org.bouncycastle.util.Strings;
+import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.io.Streams;
 import org.junit.Test;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.mail.internet.MimeBodyPart;
+import java.io.ByteArrayInputStream;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 
@@ -99,6 +104,42 @@ public class EnvelopedDataExample extends InstallBCSupport {
         byte[] envelopedDataMsg = EnvelopedData.envelopedDataMsg(envStreamGen, msg);
         CMSTypedStream cmsContent = EnvelopedData.streamExtractUsingKeyTransRecipient(envelopedDataMsg, recipientRsaKp.getPrivate(), recipientRsaCert);
         System.err.println("KeyTransRecipient Type，Stream Api Decode：" + Strings.fromByteArray(Streams.readAll(cmsContent.getContentStream())));
+    }
+
+    @Test
+    public void javaMailSMIMEEnvelopedData() throws Exception  {
+        X500NameBuilder x500NameBld = new X500NameBuilder(BCStyle.INSTANCE)
+                .addRDN(BCStyle.C, "CN")
+                .addRDN(BCStyle.ST, "Guangdong")
+                .addRDN(BCStyle.L, "Guangzhou")
+                .addRDN(BCStyle.O, "谜之家")
+                .addRDN(BCStyle.CN, "谜之家根CA");
+        X500Name rootSubject = x500NameBld.build();
+
+        String contentTransferEncoding = "BASE64";
+        String base64Data = Base64.toBase64String("Hello,world!!!".getBytes("utf-8"));
+        StringBuffer sb = new StringBuffer();
+        sb.append("Content-Type: text/plain; name=null;charset=utf-8");
+        sb.append("\r\n");
+        sb.append("Content-Transfer-Encoding:" + contentTransferEncoding);
+        sb.append("\r\n");
+        sb.append("Content-Disposition: inline; filename=test.txt");
+        sb.append("\r\n");
+        sb.append("\r\n");
+        sb.append(base64Data);
+        byte[] bodyPart = sb.toString().getBytes("utf-8");
+
+        KeyPair keyPair = RSAKeyPairGenerator.generateRSAKeyPair(2048);
+        X509CertificateHolder selfSignedCert = JcaX509Certificate.createTrustAnchor(keyPair, "SHA256WithRSA", rootSubject, 7 * 24);
+        X509Certificate x509Certificate = JcaX509Certificate.convertX509CertificateHolder(selfSignedCert);
+        MimeBodyPart mimeBodyPart = new MimeBodyPart(new ByteArrayInputStream(bodyPart));
+
+        MimeBodyPart encryptedMessage = JavaMailSMIMEEnvelopedData.createEnveloped(x509Certificate, mimeBodyPart);
+
+        MimeBodyPart result = JavaMailSMIMEEnvelopedData.decryptEnveloped(encryptedMessage, x509Certificate, keyPair.getPrivate());
+        System.out.println(result.getContent().toString());
+
+
     }
 
 

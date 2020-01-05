@@ -144,7 +144,6 @@ public class SignedDataExample extends InstallBCSupport {
         MimeBodyPart mimeBodyPart = new MimeBodyPart(new ByteArrayInputStream(bodyPart));
         MimeMultipart signedMM = JavaMailSMIMESignedData.createSignedMultipart(selfSignedKp.getPrivate(), selfSignedCert, "SM3withSM2", mimeBodyPart);
 
-        ByteArrayOutputStream contentStream = new ByteArrayOutputStream();
         System.out.println("verified: " + JavaMailSMIMESignedData.verifySignedMultipart(signedMM,selfSignedCert));
         String result = signedMM.getBodyPart(0).getContent().toString();
         System.out.println(result);
