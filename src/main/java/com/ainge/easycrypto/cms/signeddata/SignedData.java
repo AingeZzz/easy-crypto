@@ -15,6 +15,10 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.util.CollectionStore;
 import org.bouncycastle.util.Store;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.util.*;
@@ -197,6 +201,58 @@ public class SignedData {
                 throw new OperatorCreationException("verifier provider failed: " + e.getMessage(), e);
             }
         });
+    }
+
+
+    /**
+     * 流的方式构造P7带原文签名，不带原文的参考实现就可以
+     *
+     * @param signingKey
+     * @param alg
+     * @param signingCert
+     * @param msg
+     * @return
+     * @throws CMSException
+     * @throws OperatorCreationException
+     * @throws IOException
+     */
+    public static byte[] createSignedDataStreaming(PrivateKey signingKey, String alg, X509CertificateHolder signingCert, byte[] msg) throws CMSException, OperatorCreationException, IOException {
+        SignerInfoGenerator signerInfoGenerator = new JcaSimpleSignerInfoGeneratorBuilder().setProvider("BC").build(alg, signingKey, signingCert);
+        CMSSignedDataStreamGenerator gen = new CMSSignedDataStreamGenerator();
+        gen.addSignerInfoGenerator(signerInfoGenerator);
+        Store<X509CertificateHolder> certs = new CollectionStore<>(Collections.singletonList(signingCert));
+        gen.addCertificates(certs);
+        ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+        OutputStream sOut = gen.open(bOut, true);
+        sOut.write(msg);
+        sOut.close();
+        return bOut.toByteArray();
+    }
+
+
+    /**
+     * 流的方式验证带原文的签名
+     *
+     * @param encodedSignedData
+     * @throws CMSException
+     * @throws OperatorCreationException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws CryptoException
+     */
+    public static void verifySignedEncapsulatedStreaming(byte[] encodedSignedData) throws CMSException, OperatorCreationException, IOException, CertificateException, CryptoException {
+        CMSSignedDataParser signedDataParser = new CMSSignedDataParser(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build(), new ByteArrayInputStream(encodedSignedData));
+        signedDataParser.getSignedContent().drain();
+        SignerInformationStore signers = signedDataParser.getSignerInfos();
+        Store certs = signedDataParser.getCertificates();
+        for (SignerInformation signerInfo : signers) {
+            Collection<X509CertificateHolder> certCollection = certs.getMatches(signerInfo.getSID());
+            X509CertificateHolder cert = certCollection.iterator().next();
+            boolean verify = signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(cert));
+            if (!verify) {
+                throw new CryptoException(String.format("该证书（主题为：%s）的签名验证失败", cert.getSubject()));
+            }
+        }
     }
 
 }
