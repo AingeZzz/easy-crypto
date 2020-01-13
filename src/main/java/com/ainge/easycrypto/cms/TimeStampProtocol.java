@@ -22,6 +22,20 @@ import java.util.Date;
 /**
  * 时间戳规范：
  * https://tools.ietf.org/html/rfc3161
+ * <p>
+ * 时间戳产生的过程主要包括以下几个步骤:
+ * ①用户(时间戳需求方)将电子数据(文件)使用摘要算法计算出摘要值，然后组成时间戳请求包TimeStampReq。
+ * ②用户将请求包TimeStampReq发送给TSA。
+ * ③TSA接收到请求包TimeStampReq,
+ * ④TSA需要验证TimeStampReq的时效性,通过判断nonce是否重复来防止重放攻击。
+ * TSA使用私钥对请求包中的摘要进行数字签名后,组成时间戳响应包TimeStampResp。
+ * TSA可以拥有多个私钥，针对不同策略、不同算法等，可使用不同的私钥。
+ * TSA数字证书的extendedKeyUsage扩展项必须设置为关键扩展项，且必须包含id一kp一timeStamping 扩展密钥用途。
+ * ⑤TSA将响应包TimeStampResp发送给用户。
+ * ⑥用户接收到响应包TimeStampResp。
+ * ⑦用户首先判断TimeStampResp 中的状态信息，如果为错误状态，则表示本次时间戳申请失败;
+ * 如果为正确状态，则验证响应包中各种字段信息和TSA签名是否正确:如果字段信息或签名不正确，则拒绝该响应包。
+ * 用户需要通过OCSP或CRL验证TSA证书是否作废或有效。
  *
  * @author: Ainge
  * @Time: 2020/1/6 23:28

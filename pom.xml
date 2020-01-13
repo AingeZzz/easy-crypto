@@ -40,6 +40,12 @@
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
         </dependency>
+        <!-- support pgp  -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk15on</artifactId>
+            <version>1.64</version>
+        </dependency>
     </dependencies>
 
     <build>

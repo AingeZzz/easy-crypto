@@ -21,8 +21,10 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Date;
@@ -76,6 +78,19 @@ public class JcaX509Certificate {
     public static X509Certificate convertX509CertificateHolder(X509CertificateHolder certHolder) throws GeneralSecurityException, IOException {
         CertificateFactory cFact = CertificateFactory.getInstance("X.509", "BC");
         return (X509Certificate) cFact.generateCertificate(new ByteArrayInputStream(certHolder.getEncoded()));
+    }
+
+    /**
+     * 加载X509证书
+     * @param certData 证书字节数组
+     * @return X509Certificate
+     * @throws CertificateException
+     * @throws NoSuchProviderException
+     */
+    public static X509Certificate loadX509Cert(byte[] certData) throws CertificateException, NoSuchProviderException {
+        CertificateFactory certFactory = CertificateFactory.getInstance("X.509", "BC");
+        InputStream in = new ByteArrayInputStream(certData);
+        return (X509Certificate) certFactory.generateCertificate(in);
     }
 
     /**
