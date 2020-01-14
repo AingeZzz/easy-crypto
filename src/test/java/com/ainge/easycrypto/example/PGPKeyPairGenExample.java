@@ -43,7 +43,9 @@ public class PGPKeyPairGenExample extends InstallBCSupport{
         Optional<PGPKeyHolder> pgpCoderKey = PGPUtils.readPublicKey(bytes[1]);
         PGPKeyHolder pub = pgpCoderKey.get();
         PersonalKey personalKey = PersonalKey.load(bytes[0], passphrase);
-        System.out.println(personalKey.getBridgeCertificate());
+
+        String pemPrint = CertSignerExample.JcaPEMPrint(personalKey.getBridgeCertificate());
+        System.out.println(pemPrint);
 
     }
 
