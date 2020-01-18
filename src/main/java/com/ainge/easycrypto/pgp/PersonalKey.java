@@ -78,7 +78,7 @@ public final class PersonalKey {
         return mSignKey.getPrivateKey();
     }
 
-    int getSigningAlgorithm() {
+    public int getSigningAlgorithm() {
         return mSignKey.getPublicKey().getAlgorithm();
     }
 
@@ -185,5 +185,21 @@ public final class PersonalKey {
             LOGGER.log(Level.WARNING, "can't create X.509 certificate");
             throw ex;
         }
+    }
+
+    public PGPPublicKey getmAuthKey() {
+        return mAuthKey;
+    }
+
+    public PrivateKey getmLoginKey() {
+        return mLoginKey;
+    }
+
+    public PGPKeyPair getmSignKey() {
+        return mSignKey;
+    }
+
+    public PGPKeyPair getmEncryptKey() {
+        return mEncryptKey;
     }
 }
