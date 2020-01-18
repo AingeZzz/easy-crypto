@@ -80,11 +80,10 @@ public class TimeStampProtocol {
     public static byte[] createTspResponse(PrivateKey tsaSigningKey, X509Certificate tsaSigningCert,
                                            BigInteger serialNumber, ASN1ObjectIdentifier tsaPolicy, byte[] encRequest) throws Exception {
         AlgorithmIdentifier digestAlgorithm = new AlgorithmIdentifier(NISTObjectIdentifiers.id_sha256);
-        DigestCalculatorProvider digProvider = new JcaDigestCalculatorProviderBuilder().setProvider("BCFIPS").build();
+        DigestCalculatorProvider digProvider = new JcaDigestCalculatorProviderBuilder().setProvider("BC").build();
         TimeStampRequest tspRequest = new TimeStampRequest(encRequest);
         SignerInfoGenerator tsaSigner = new JcaSimpleSignerInfoGeneratorBuilder().build("SHA256withRSA", tsaSigningKey, tsaSigningCert);
         TimeStampTokenGenerator tsTokenGen = new TimeStampTokenGenerator(tsaSigner, digProvider.get(digestAlgorithm), tsaPolicy);
-
         // 客户端已请求签名证书的副本
         if (tspRequest.getCertReq()) {
             tsTokenGen.addCertificates(new JcaCertStore(Collections.singleton(tsaSigningCert)));
@@ -107,7 +106,7 @@ public class TimeStampProtocol {
         TimeStampToken tsToken = tsResp.getTimeStampToken();
 
         // 存在问题则会抛出异常
-        tsToken.validate(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BCFIPS").build(tsaCertificate));
+        tsToken.validate(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(tsaCertificate));
 
         return true;
     }

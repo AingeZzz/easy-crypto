@@ -111,23 +111,41 @@ public class JcaX509Certificate {
      * @return 包含V3证书的X509CertificateHolder
      */
     public static X509CertificateHolder createTrustAnchor(KeyPair keyPair, String sigAlg, X500Name subject, int certValidity) throws OperatorCreationException, NoSuchAlgorithmException, CertIOException {
+        return createSpecialPurposeTrustAnchor(keyPair,sigAlg,subject,certValidity,null);
+    }
 
+    /**
+     * 构建一个自签名V3证书，特定用途
+     *
+     * @param keyPair      用于签名和提供公钥的密钥对
+     * @param sigAlg       用于与证书签名的签名算法（算法需要与密钥对匹配，例如RSA密钥对，需要传人RSA算法，SM2传入SM2算法，EC密钥对传入EC算法）
+     * @param subject      用户主题
+     * @param certValidity 证书有效期（单位小时）
+     *
+     * @return 包含V3证书的X509CertificateHolder
+     */
+    public static X509CertificateHolder createSpecialPurposeTrustAnchor(KeyPair keyPair, String sigAlg, X500Name subject, int certValidity,KeyPurposeId keyPurpose) throws OperatorCreationException, NoSuchAlgorithmException, CertIOException  {
         X509v3CertificateBuilder certBldr = new JcaX509v3CertificateBuilder(subject, calculateSerialNumber(), calculateDate(0), calculateDate(certValidity), subject, keyPair.getPublic());
         // 添加证书扩展
         JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
         SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
         // 授权密钥标识
         certBldr.addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(subjectPublicKeyInfo))
-                // 主题密钥标识 （root ca对话，与 授权密钥标识一致，自己给自己授权，自己签发自己）
+                // 主题密钥标识 （root ca的话，与 授权密钥标识一致，自己给自己授权，自己签发自己）
                 .addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(keyPair.getPublic()))
                 // 基本约束=ca证书,pathLenConstraint=None,没有限制
                 .addExtension(Extension.basicConstraints, true, new BasicConstraints(true))
                 // 添加CA证书的扩展，密钥用法，签名，签发证书，签CRL
                 .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyCertSign | KeyUsage.cRLSign));
+        if(keyPurpose != null){
+            // 扩展密钥用法
+            certBldr.addExtension(Extension.extendedKeyUsage, true, new ExtendedKeyUsage(keyPurpose));
+        }
 
         ContentSigner signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(keyPair.getPrivate());
         return certBldr.build(signer);
     }
+
 
 
     /**
