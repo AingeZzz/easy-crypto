@@ -30,7 +30,7 @@ public class AESExample extends InstallBCSupport {
     @Test
     public void aesGcm() throws Exception {
         byte[] keyBytes = ByteUtil.randomBytes(16); //16*8 = 128bits
-        byte[] iv = ByteUtil.randomBytes(16); // IV must be 16 bytes long.
+        byte[] iv = ByteUtil.randomBytes(16);
         byte[] plaintext = "我就是原文".getBytes("utf-8");
         int tagLength = 16;
         // 附加到认证信息，一般双方约定，或者明文传输

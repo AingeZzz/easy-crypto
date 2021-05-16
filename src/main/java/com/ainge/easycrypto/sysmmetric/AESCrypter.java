@@ -30,8 +30,6 @@ public class AESCrypter {
             Cipher cipher = Cipher.getInstance(CBC_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
             cipher.init(Cipher.ENCRYPT_MODE, toAesKey(keyBytes), new IvParameterSpec(iv));
             return cipher.doFinal(plaintext);
-        } catch (InvalidKeyException e) {
-            throw new AESCryptoException(e.getMessage(), e);
         } catch (Exception e) {
             throw new AESCryptoException(e.getMessage(), e);
         }
@@ -51,8 +49,6 @@ public class AESCrypter {
             cipher = Cipher.getInstance(CBC_TRANSFORMATION_NAME, BouncyCastleProvider.PROVIDER_NAME);
             cipher.init(Cipher.DECRYPT_MODE, toAesKey(keyBytes), new IvParameterSpec(iv));
             return cipher.doFinal(ciphertext);
-        } catch (InvalidKeyException e) {
-            throw new AESCryptoException(e.getMessage(), e);
         } catch (Exception e) {
             throw new AESCryptoException(e.getMessage(), e);
         }
@@ -105,8 +101,6 @@ public class AESCrypter {
                 cipher.updateAAD(aad);
             }
             return cipher.doFinal(pText);
-        } catch (InvalidKeyException e) {
-            throw new AESCryptoException(e.getMessage(), e);
         } catch (Exception e) {
             throw new AESCryptoException(e.getMessage(), e);
         }
@@ -132,8 +126,6 @@ public class AESCrypter {
                 cipher.updateAAD(aad);
             }
             return cipher.doFinal(cText);
-        } catch (InvalidKeyException e) {
-            throw new AESCryptoException(e.getMessage(), e);
         } catch (Exception e) {
             throw new AESCryptoException(e.getMessage(), e);
         }

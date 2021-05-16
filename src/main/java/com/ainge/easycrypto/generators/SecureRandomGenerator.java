@@ -17,9 +17,6 @@ public class SecureRandomGenerator {
      * @return
      */
     public static byte[] randomBytes(int length) {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] bytes = new byte[length];
-        secureRandom.nextBytes(bytes);
         return randomBytes(length, null);
     }
 
